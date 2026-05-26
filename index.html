@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title></title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Noto+Serif+Bengali:wght@300;400;600;700&display=swap');
+
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #f0d080;
+    --gold-bright: #ffd700;
+    --gold-dim: #8b6914;
+    --deep-green: #0a2a1a;
+    --green: #1a4a2e;
+    --green-light: #2d6b45;
+    --night: #020810;
+    --night2: #050d1a;
+    --white: #f8f4e8;
+    --cream: #ede0c0;
+    --silver: #c8d8e8;
+    --moon-glow: rgba(255,240,180,0.18);
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  html, body {
+    width:100%; height:100%;
+    overflow:hidden;
+    background: var(--night);
+    font-family: 'Cormorant Garamond', serif;
+    cursor: none;
+  }
+
+  /* ─── CUSTOM CURSOR ─── */
+  #cursor {
+    position:fixed; width:18px; height:18px; border-radius:50%;
+    background: radial-gradient(circle, var(--gold-bright), var(--gold));
+    pointer-events:none; z-index:9999;
+    transform:translate(-50%,-50%);
+    transition: transform 0.08s ease, opacity 0.3s;
+    box-shadow: 0 0 14px 4px rgba(255,215,0,0.5);
+    mix-blend-mode: screen;
+  }
+  #cursor-ring {
+    position:fixed; width:44px; height:44px; border-radius:50%;
+    border:1px solid rgba(201,168,76,0.5);
+    pointer-events:none; z-index:9998;
+    transform:translate(-50%,-50%);
+    transition: transform 0.18s ease, width 0.3s, height 0.3s, opacity 0.3s;
+  }
+
+  /* ─── MAIN WRAPPER ─── */
+  #app {
+    position:fixed; inset:0;
+    perspective: 1200px;
+    overflow:hidden;
+  }
+
+  /* ─── CANVAS LAYERS ─── */
+  .layer {
+    position:absolute; inset:0;
+    will-change: transform;
+  }
+
+  /* ─── NIGHT SKY ─── */
+  #sky {
+    background: radial-gradient(ellipse 120% 80% at 50% 0%,
+      #0a1628 0%, #030b18 40%, var(--night) 100%);
+    z-index:1;
+  }
+
+  /* ─── STARS CANVAS ─── */
+  #starsCanvas {
+    position:absolute; inset:0;
+    z-index:2; pointer-events:none;
+  }
+
+  /* ─── MOON ─── */
+  #moon-wrap {
+    position:absolute; top:6vh; right:10vw;
+    z-index:5;
+    animation: moonFloat 8s ease-in-out infinite;
+  }
+  .moon {
+    width:clamp(70px,10vw,120px);
+    height:clamp(70px,10vw,120px);
+    border-radius:50%;
+    background: radial-gradient(circle at 35% 35%,
+      #fffbe0, #f5d76e 40%, #c9a020 80%, #8b6500);
+    box-shadow:
+      0 0 40px 20px rgba(240,200,80,0.35),
+      0 0 100px 50px rgba(200,160,40,0.18),
+      0 0 200px 100px rgba(180,140,20,0.08);
+    position:relative;
+  }
+  .moon::after {
+    content:'';
+    position:absolute; inset:0; border-radius:50%;
+    background: radial-gradient(circle at 68% 30%,
+      transparent 55%, rgba(0,0,0,0.25) 100%);
+  }
+  .moon-star {
+    position:absolute;
+    top:12%; right:12%;
+    font-size:clamp(14px,2.5vw,24px);
+    color:#f5d76e;
+    filter: drop-shadow(0 0 6px #ffd700);
+    animation: starTwinkle 3s ease-in-out infinite;
+  }
+  @keyframes moonFloat {
+    0%,100%{transform:translateY(0) rotate(-2deg);}
+    50%{transform:translateY(-18px) rotate(2deg);}
+  }
+  @keyframes starTwinkle {
+    0%,100%{opacity:1; transform:scale(1);}
+    50%{opacity:0.6; transform:scale(0.85);}
+  }
+
+  /* ─── CLOUDS ─── */
+  .cloud {
+    position:absolute; border-radius:50%;
+    background: rgba(255,255,255,0.03);
+    filter:blur(30px);
+    animation: cloudDrift linear infinite;
+  }
+  @keyframes cloudDrift {
+    from{transform:translateX(-20vw);} to{transform:translateX(120vw);}
+  }
+
+  /* ─── MOSQUE SILHOUETTE ─── */
+  #mosque-wrap {
+    position:absolute; bottom:0; left:50%;
+    transform:translateX(-50%);
+    z-index:8; width:100%; max-width:900px;
+    display:flex; justify-content:center;
+  }
+
+  /* ─── GROUND ─── */
+  #ground {
+    position:absolute; bottom:0; left:0; right:0;
+    height:22vh; z-index:7;
+    background: linear-gradient(to top,
+      #0d2a16 0%, #0a2010 40%, transparent 100%);
+  }
+  #ground::before {
+    content:''; position:absolute; inset:0;
+    background: repeating-linear-gradient(
+      90deg, transparent, transparent 60px,
+      rgba(255,215,0,0.02) 60px, rgba(255,215,0,0.02) 62px
+    );
+  }
+
+  /* ─── LANTERNS ─── */
+  .lantern-wrap {
+    position:absolute; z-index:15;
+    animation: lanternSwing ease-in-out infinite;
+    transform-origin: top center;
+  }
+  .lantern-string {
+    width:1px; margin:0 auto;
+    background:linear-gradient(to bottom, rgba(201,168,76,0.6), rgba(201,168,76,0.2));
+  }
+  .lantern-body {
+    width:clamp(22px,3.5vw,42px);
+    height:clamp(32px,5vw,58px);
+    border-radius:40% 40% 50% 50%;
+    position:relative; margin:0 auto;
+    animation: lanternGlow 2.5s ease-in-out infinite;
+  }
+  .lantern-body::before {
+    content:''; position:absolute; inset:2px; border-radius:inherit;
+    background:inherit; filter:blur(3px); opacity:0.5;
+  }
+  .lantern-cap {
+    width:120%; height:8px; border-radius:4px;
+    position:absolute; left:-10%; top:-4px;
+  }
+  .lantern-bottom {
+    width:30%; height:10px; border-radius:0 0 50% 50%;
+    position:absolute; left:35%; bottom:-8px;
+  }
+  @keyframes lanternSwing {
+    0%,100%{transform:rotate(-8deg);}
+    50%{transform:rotate(8deg);}
+  }
+  @keyframes lanternGlow {
+    0%,100%{box-shadow:0 0 15px 8px rgba(255,180,0,0.4),inset 0 0 15px rgba(255,220,80,0.3);}
+    50%{box-shadow:0 0 25px 15px rgba(255,200,0,0.6),inset 0 0 25px rgba(255,240,100,0.5);}
+  }
+
+  /* ─── PARTICLES CANVAS ─── */
+  #particlesCanvas {
+    position:absolute; inset:0; z-index:20;
+    pointer-events:none;
+  }
+
+  /* ─── FIREWORKS CANVAS ─── */
+  #fireworksCanvas {
+    position:absolute; inset:0; z-index:21;
+    pointer-events:none; opacity:0;
+    transition:opacity 1s ease;
+  }
+
+  /* ─── LANDING SCREEN ─── */
+  #landing {
+    position:absolute; inset:0; z-index:50;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    transition: opacity 1.5s ease, transform 2s cubic-bezier(0.16,1,0.3,1);
+  }
+
+  .landing-bismillah {
+    font-family:'Noto Serif Bengali', serif;
+    font-size:clamp(14px,2.5vw,22px);
+    color:rgba(201,168,76,0.7);
+    letter-spacing:0.4em;
+    margin-bottom:clamp(20px,4vh,40px);
+    animation: fadeInDown 2s ease 0.5s both;
+    text-shadow:0 0 20px rgba(201,168,76,0.4);
+  }
+
+  .landing-arabic {
+    font-size:clamp(28px,6vw,72px);
+    color:var(--gold-light);
+    text-align:center;
+    line-height:1.4;
+    margin-bottom:clamp(10px,2vh,20px);
+    animation: fadeInDown 2s ease 0.8s both;
+    text-shadow:
+      0 0 30px rgba(201,168,76,0.6),
+      0 0 80px rgba(201,168,76,0.2);
+    font-weight:300;
+  }
+
+  .landing-divider {
+    width:clamp(80px,20vw,200px); height:1px;
+    background:linear-gradient(to right, transparent, var(--gold), transparent);
+    margin:clamp(15px,3vh,30px) auto;
+    animation: expandWidth 2s ease 1.2s both;
+    position:relative;
+  }
+  .landing-divider::before,.landing-divider::after {
+    content:'◆';
+    position:absolute; top:50%; transform:translateY(-50%);
+    color:var(--gold); font-size:8px;
+  }
+  .landing-divider::before{left:-12px;}
+  .landing-divider::after{right:-12px;}
+
+  .landing-sub {
+    font-family:'Cormorant Garamond', serif;
+    font-size:clamp(13px,2vw,18px);
+    color:rgba(232,210,160,0.6);
+    letter-spacing:0.25em;
+    text-transform:uppercase;
+    margin-bottom:clamp(40px,8vh,80px);
+    animation: fadeInUp 2s ease 1.5s both;
+  }
+
+  /* ─── LOOK INSIDE BUTTON ─── */
+  #lookBtn {
+    position:relative;
+    padding:clamp(14px,2.5vh,20px) clamp(40px,6vw,70px);
+    background:transparent; border:none;
+    cursor:none; outline:none;
+    animation: fadeInUp 2s ease 1.8s both;
+    font-family:'Cinzel Decorative', serif;
+  }
+  .btn-bg {
+    position:absolute; inset:0; border-radius:2px;
+    background:linear-gradient(135deg,
+      rgba(201,168,76,0.08) 0%,
+      rgba(201,168,76,0.18) 50%,
+      rgba(201,168,76,0.08) 100%);
+    border:1px solid rgba(201,168,76,0.4);
+    transition:all 0.4s ease;
+    overflow:hidden;
+  }
+  .btn-bg::before {
+    content:''; position:absolute; inset:-2px;
+    background:linear-gradient(135deg, var(--gold), transparent, var(--gold));
+    opacity:0;
+    transition:opacity 0.4s ease;
+  }
+  .btn-bg::after {
+    content:''; position:absolute;
+    top:-50%; left:-60%; width:30%; height:200%;
+    background:linear-gradient(90deg, transparent, rgba(255,215,0,0.3), transparent);
+    transform:skewX(-20deg);
+    transition:left 0.6s ease;
+  }
+  .btn-corner {
+    position:absolute; width:8px; height:8px;
+    border-color:var(--gold); border-style:solid;
+    transition:all 0.3s ease;
+  }
+  .btn-corner.tl{top:-1px;left:-1px;border-width:2px 0 0 2px;}
+  .btn-corner.tr{top:-1px;right:-1px;border-width:2px 2px 0 0;}
+  .btn-corner.bl{bottom:-1px;left:-1px;border-width:0 0 2px 2px;}
+  .btn-corner.br{bottom:-1px;right:-1px;border-width:0 2px 2px 0;}
+  .btn-text {
+    position:relative; z-index:1;
+    font-size:clamp(11px,1.8vw,16px);
+    color:var(--gold-light);
+    letter-spacing:0.35em;
+    text-transform:uppercase;
+    transition:color 0.4s ease;
+  }
+  .btn-icon {
+    display:inline-block; margin-left:10px;
+    opacity:0.7; font-size:0.9em;
+    animation: iconPulse 2s ease-in-out infinite;
+  }
+  #lookBtn:hover .btn-bg {
+    background:linear-gradient(135deg,
+      rgba(201,168,76,0.18) 0%,
+      rgba(201,168,76,0.35) 50%,
+      rgba(201,168,76,0.18) 100%);
+    border-color:rgba(201,168,76,0.8);
+    box-shadow:0 0 30px rgba(201,168,76,0.3), inset 0 0 20px rgba(201,168,76,0.1);
+  }
+  #lookBtn:hover .btn-bg::before{opacity:0.15;}
+  #lookBtn:hover .btn-bg::after{left:120%;}
+  #lookBtn:hover .btn-corner{width:14px;height:14px;}
+  #lookBtn:hover .btn-text{color:var(--gold-bright);}
+  @keyframes iconPulse{0%,100%{transform:translateX(0);opacity:0.7;}50%{transform:translateX(4px);opacity:1;}}
+
+  /* ─── GREETING SCREEN ─── */
+  #greeting {
+    position:absolute; inset:0; z-index:45;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    opacity:0; pointer-events:none;
+    transform:scale(0.85) translateZ(-100px);
+    transition:opacity 2s cubic-bezier(0.16,1,0.3,1),
+                transform 2.5s cubic-bezier(0.16,1,0.3,1);
+  }
+  #greeting.visible {
+    opacity:1; pointer-events:auto;
+    transform:scale(1) translateZ(0);
+  }
+
+  .greet-halo {
+    position:absolute; width:clamp(300px,60vw,600px);
+    height:clamp(300px,60vw,600px); border-radius:50%;
+    background:radial-gradient(circle,
+      rgba(201,168,76,0.07) 0%, transparent 70%);
+    animation:haloBreath 4s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes haloBreath{
+    0%,100%{transform:scale(1);opacity:0.5;}
+    50%{transform:scale(1.15);opacity:1;}
+  }
+
+  .greet-ornament-top {
+    font-size:clamp(24px,5vw,48px);
+    color:var(--gold);
+    filter:drop-shadow(0 0 15px rgba(255,215,0,0.7));
+    margin-bottom:clamp(10px,2vh,20px);
+    animation: ornamentReveal 1.5s cubic-bezier(0.16,1,0.3,1) 0.5s both;
+    letter-spacing:0.2em;
+  }
+
+  .greet-panel {
+    position:relative;
+    padding:clamp(30px,5vh,60px) clamp(30px,6vw,80px);
+    text-align:center;
+    max-width:min(90vw, 700px);
+  }
+  .greet-panel::before {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(135deg,
+      rgba(10,20,30,0.7) 0%,
+      rgba(5,15,25,0.85) 100%);
+    backdrop-filter:blur(20px);
+    border:1px solid rgba(201,168,76,0.2);
+    border-radius:4px;
+    box-shadow:
+      0 0 60px rgba(201,168,76,0.12),
+      inset 0 0 40px rgba(201,168,76,0.04);
+  }
+  /* glassmorphism edge highlight */
+  .greet-panel::after {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(135deg,
+      rgba(201,168,76,0.08) 0%,
+      transparent 40%,
+      rgba(201,168,76,0.04) 100%);
+    border-radius:4px;
+    pointer-events:none;
+  }
+
+  .panel-corner {
+    position:absolute; z-index:1;
+    width:clamp(20px,4vw,40px); height:clamp(20px,4vw,40px);
+  }
+  .panel-corner svg{width:100%;height:100%;}
+  .pc-tl{top:-1px;left:-1px;}
+  .pc-tr{top:-1px;right:-1px;transform:scaleX(-1);}
+  .pc-bl{bottom:-1px;left:-1px;transform:scaleY(-1);}
+  .pc-br{bottom:-1px;right:-1px;transform:scale(-1);}
+
+  .greet-label {
+    position:relative; z-index:1;
+    font-family:'Cormorant Garamond', serif;
+    font-size:clamp(10px,1.6vw,14px);
+    color:rgba(201,168,76,0.7);
+    letter-spacing:0.5em;
+    text-transform:uppercase;
+    margin-bottom:clamp(12px,2.5vh,24px);
+    animation: fadeInDown 1.2s ease 1s both;
+  }
+
+  .greet-main-bn {
+    position:relative; z-index:1;
+    font-family:'Noto Serif Bengali', serif;
+    font-size:clamp(32px,7vw,88px);
+    color:transparent;
+    background:linear-gradient(135deg,
+      #f0d080 0%, #ffd700 30%, #c9a020 60%, #f0d080 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    line-height:1.2;
+    margin-bottom:clamp(8px,1.5vh,15px);
+    filter:drop-shadow(0 0 20px rgba(201,168,76,0.5));
+    animation: textBloom 2s cubic-bezier(0.16,1,0.3,1) 1.3s both;
+    font-weight:700;
+  }
+
+  .greet-main-ar {
+    position:relative; z-index:1;
+    font-family:'Cormorant Garamond', serif;
+    font-size:clamp(18px,3.5vw,42px);
+    color:var(--cream);
+    font-style:italic;
+    font-weight:300;
+    margin-bottom:clamp(15px,3vh,30px);
+    animation: fadeInUp 1.5s ease 1.8s both;
+    text-shadow:0 0 15px rgba(201,168,76,0.3);
+  }
+
+  .greet-divider {
+    position:relative; z-index:1;
+    width:80%; margin:0 auto clamp(15px,3vh,30px);
+    height:1px;
+    background:linear-gradient(to right, transparent, var(--gold), transparent);
+    animation: expandWidth 1.5s ease 2s both;
+  }
+  .greet-divider span {
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    background:rgba(5,15,25,0.85);
+    padding:0 12px;
+    color:var(--gold);
+    font-size:clamp(10px,1.5vw,14px);
+    letter-spacing:0.3em;
+  }
+
+  .greet-sub {
+    position:relative; z-index:1;
+    font-family:'Cormorant Garamond', serif;
+    font-size:clamp(13px,2vw,20px);
+    color:rgba(232,210,160,0.75);
+    line-height:1.8;
+    font-style:italic;
+    font-weight:300;
+    max-width:500px;
+    margin:0 auto clamp(15px,3vh,30px);
+    animation: fadeInUp 1.5s ease 2.3s both;
+  }
+
+  .greet-bn-sub {
+    position:relative; z-index:1;
+    font-family:'Noto Serif Bengali', serif;
+    font-size:clamp(12px,1.8vw,17px);
+    color:rgba(201,168,76,0.6);
+    letter-spacing:0.1em;
+    animation: fadeInUp 1.5s ease 2.6s both;
+    margin-bottom:clamp(20px,4vh,40px);
+  }
+
+  .greet-seal {
+    position:relative; z-index:1;
+    width:clamp(50px,8vw,80px); height:clamp(50px,8vw,80px);
+    margin:0 auto;
+    animation: sealSpin 20s linear infinite, fadeIn 2s ease 3s both;
+  }
+  .greet-seal svg{width:100%;height:100%;}
+
+  .greet-ornament-bot {
+    font-size:clamp(18px,3.5vw,32px);
+    color:var(--gold);
+    filter:drop-shadow(0 0 10px rgba(255,215,0,0.5));
+    margin-top:clamp(10px,2vh,20px);
+    animation: ornamentReveal 1.5s cubic-bezier(0.16,1,0.3,1) 2.8s both;
+    letter-spacing:0.3em;
+  }
+
+  @keyframes sealSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+  @keyframes textBloom{
+    0%{opacity:0;transform:scale(0.7);filter:blur(20px) drop-shadow(0 0 0 transparent);}
+    60%{filter:blur(2px) drop-shadow(0 0 30px rgba(255,215,0,0.8));}
+    100%{opacity:1;transform:scale(1);filter:blur(0) drop-shadow(0 0 20px rgba(201,168,76,0.5));}
+  }
+  @keyframes ornamentReveal{
+    0%{opacity:0;transform:scaleX(0);}
+    100%{opacity:1;transform:scaleX(1);}
+  }
+  @keyframes fadeInDown{
+    from{opacity:0;transform:translateY(-30px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+  @keyframes fadeInUp{
+    from{opacity:0;transform:translateY(30px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+  @keyframes expandWidth{
+    from{width:0;opacity:0;}
+    to{width:80%;opacity:1;}
+  }
+
+  /* ─── ANIMAL SILHOUETTES ─── */
+  .animal-silhouette {
+    position:absolute; z-index:9;
+    bottom:clamp(80px,12vh,130px);
+    opacity:0.35;
+    filter:brightness(0.4) sepia(1) hue-rotate(80deg) saturate(2);
+    animation:animalWander linear infinite;
+    will-change:transform;
+  }
+  @keyframes animalWander{
+    0%{transform:translateX(0) scaleX(1);}
+    48%{transform:translateX(calc(20vw)) scaleX(1);}
+    50%{transform:translateX(calc(20vw)) scaleX(-1);}
+    98%{transform:translateX(0) scaleX(-1);}
+    100%{transform:translateX(0) scaleX(1);}
+  }
+
+  /* ─── TRANSITION VEIL ─── */
+  #veil {
+    position:absolute; inset:0; z-index:60;
+    background:var(--night);
+    opacity:0; pointer-events:none;
+    transition:opacity 0.8s ease;
+  }
+  #veil.flash{opacity:1;}
+
+  /* ─── LIGHT RAYS ─── */
+  .light-ray {
+    position:absolute; top:0; left:50%;
+    transform-origin:top center;
+    width:2px;
+    background:linear-gradient(to bottom,
+      rgba(255,215,0,0.25), transparent);
+    pointer-events:none; z-index:3;
+    opacity:0;
+    transition:opacity 1.5s ease;
+  }
+  .light-ray.show{opacity:1;}
+
+  /* ─── AMBIENT LIGHT ORBS ─── */
+  .amb-orb {
+    position:absolute; border-radius:50%;
+    filter:blur(80px);
+    animation:orbFloat ease-in-out infinite;
+    z-index:4; pointer-events:none;
+  }
+  @keyframes orbFloat{
+    0%,100%{transform:translateY(0) scale(1);opacity:var(--op,0.3);}
+    50%{transform:translateY(-30px) scale(1.1);opacity:calc(var(--op,0.3)*1.5);}
+  }
+
+  /* ─── CAMERA SHAKE ─── */
+  @keyframes cameraShake{
+    0%,100%{transform:translate(0,0) rotate(0deg);}
+    10%{transform:translate(-4px,-2px) rotate(-0.3deg);}
+    20%{transform:translate(4px,2px) rotate(0.3deg);}
+    30%{transform:translate(-3px,3px) rotate(-0.2deg);}
+    40%{transform:translate(3px,-3px) rotate(0.2deg);}
+    50%{transform:translate(-2px,-1px) rotate(-0.1deg);}
+    60%{transform:translate(2px,1px) rotate(0.1deg);}
+    70%{transform:translate(-1px,2px) rotate(0);}
+    80%{transform:translate(1px,-1px);}
+    90%{transform:translate(0,0);}
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media(max-width:480px){
+    .greet-panel{padding:25px 18px;}
+    #moon-wrap{top:4vh;right:5vw;}
+  }
+
+  /* ─── LOADING ─── */
+  #loader {
+    position:fixed; inset:0; z-index:200;
+    background:var(--night);
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:20px;
+    transition:opacity 1s ease, visibility 1s;
+  }
+  #loader.hidden{opacity:0;visibility:hidden;}
+  .loader-ring {
+    width:60px; height:60px; border-radius:50%;
+    border:2px solid rgba(201,168,76,0.15);
+    border-top-color:var(--gold);
+    animation:spin 1s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loader-text {
+    font-family:'Noto Serif Bengali',serif;
+    color:rgba(201,168,76,0.6);
+    font-size:13px; letter-spacing:0.3em;
+  }
+
+  /* ─── SCROLL HINT ─── */
+  #scroll-hint {
+    position:absolute; bottom:3vh; left:50%; transform:translateX(-50%);
+    z-index:55; opacity:0; pointer-events:none;
+    transition:opacity 1s ease;
+    text-align:center;
+  }
+  #scroll-hint.show{opacity:1;}
+  .scroll-dot {
+    width:5px; height:5px; border-radius:50%;
+    background:var(--gold); margin:0 auto 8px;
+    animation:scrollBounce 1.5s ease-in-out infinite;
+  }
+  .scroll-text {
+    font-family:'Cormorant Garamond',serif;
+    font-size:11px; color:rgba(201,168,76,0.5);
+    letter-spacing:0.3em; text-transform:uppercase;
+  }
+  @keyframes scrollBounce{
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(6px);}
+  }
+
+  /* bloom overlay */
+  #bloom {
+    position:absolute;inset:0;z-index:22;pointer-events:none;
+    background:radial-gradient(ellipse 60% 40% at 50% 40%,
+      rgba(255,215,0,0.06) 0%, transparent 70%);
+    opacity:0;transition:opacity 2s ease;
+  }
+  #bloom.on{opacity:1;}
+
+</style>
+</head>
+<body>
+
+<!-- CUSTOM CURSOR -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-ring"></div>
+  <div class="loader-text">লোড হচ্ছে...</div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+
+  <!-- VEIL -->
+  <div id="veil"></div>
+
+  <!-- BLOOM -->
+  <div id="bloom"></div>
+
+  <!-- SKY -->
+  <div class="layer" id="sky"></div>
+
+  <!-- STARS -->
+  <canvas id="starsCanvas"></canvas>
+
+  <!-- AMBIENT ORBS -->
+  <div class="amb-orb" style="width:500px;height:500px;top:-100px;left:-100px;
+    background:rgba(0,40,20,0.6);--op:0.4;animation-duration:12s;"></div>
+  <div class="amb-orb" style="width:400px;height:400px;top:20%;right:-80px;
+    background:rgba(30,10,0,0.5);--op:0.3;animation-duration:9s;"></div>
+  <div class="amb-orb" style="width:350px;height:350px;bottom:10%;left:20%;
+    background:rgba(0,30,15,0.4);--op:0.25;animation-duration:14s;"></div>
+
+  <!-- LIGHT RAYS -->
+  <div id="rays-wrap"></div>
+
+  <!-- MOON -->
+  <div class="layer" id="moon-layer" style="z-index:5;">
+    <div id="moon-wrap">
+      <div class="moon">
+        <span class="moon-star">☽</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLOUDS -->
+  <div class="layer" id="cloud-layer" style="z-index:6;"></div>
+
+  <!-- GROUND -->
+  <div id="ground"></div>
+
+  <!-- MOSQUE SILHOUETTE -->
+  <div id="mosque-wrap" class="layer" style="z-index:8;">
+    <svg viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax meet"
+      xmlns="http://www.w3.org/2000/svg"
+      style="width:100%;height:clamp(160px,30vh,320px);display:block;">
+      <defs>
+        <linearGradient id="mosqueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#1a3a24;stop-opacity:1"/>
+          <stop offset="100%" style="stop-color:#0a1a10;stop-opacity:1"/>
+        </linearGradient>
+        <filter id="mosqueGlow">
+          <feGaussianBlur stdDeviation="2" result="blur"/>
+          <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+      </defs>
+      <g fill="url(#mosqueGrad)" filter="url(#mosqueGlow)">
+        <!-- Main dome center -->
+        <ellipse cx="600" cy="180" rx="120" ry="110"/>
+        <rect x="480" y="180" width="240" height="220"/>
+        <!-- Main minaret left -->
+        <rect x="380" y="100" width="34" height="300"/>
+        <ellipse cx="397" cy="100" rx="17" ry="28"/>
+        <polygon points="397,65 385,100 409,100"/>
+        <rect x="393" y="65" width="8" height="20"/>
+        <!-- Main minaret right -->
+        <rect x="786" y="100" width="34" height="300"/>
+        <ellipse cx="803" cy="100" rx="17" ry="28"/>
+        <polygon points="803,65 791,100 815,100"/>
+        <rect x="799" y="65" width="8" height="20"/>
+        <!-- Side dome left -->
+        <ellipse cx="430" cy="220" rx="60" ry="55"/>
+        <rect x="370" y="220" width="120" height="180"/>
+        <!-- Side dome right -->
+        <ellipse cx="770" cy="220" rx="60" ry="55"/>
+        <rect x="710" y="220" width="120" height="180"/>
+        <!-- Small minarets -->
+        <rect x="310" y="200" width="20" height="200"/>
+        <ellipse cx="320" cy="200" rx="10" ry="16"/>
+        <polygon points="320,182 313,200 327,200"/>
+        <rect x="870" y="200" width="20" height="200"/>
+        <ellipse cx="880" cy="200" rx="10" ry="16"/>
+        <polygon points="880,182 873,200 887,200"/>
+        <!-- Extended walls -->
+        <rect x="220" y="300" width="150" height="100"/>
+        <rect x="830" y="300" width="150" height="100"/>
+        <!-- Arch windows center -->
+        <path d="M545,300 Q600,260 655,300 L655,370 L545,370 Z" fill="#0a1a0e"/>
+        <!-- Small arch left -->
+        <path d="M500,320 Q520,305 540,320 L540,370 L500,370 Z" fill="#0a1a0e"/>
+        <!-- Small arch right -->
+        <path d="M660,320 Q680,305 700,320 L700,370 L660,370 Z" fill="#0a1a0e"/>
+        <!-- Crescent atop main dome -->
+        <text x="590" y="80" font-size="28" fill="#c9a84c" 
+          font-family="serif" opacity="0.9">☽</text>
+        <!-- Ground extension -->
+        <rect x="0" y="370" width="1200" height="30"/>
+      </g>
+      <!-- Subtle window glow -->
+      <ellipse cx="600" cy="330" rx="50" ry="30" 
+        fill="rgba(255,200,80,0.04)"/>
+    </svg>
+  </div>
+
+  <!-- ANIMAL SILHOUETTES -->
+  <svg class="animal-silhouette" viewBox="0 0 120 80" style="width:clamp(60px,9vw,110px);left:8vw;animation-duration:22s;"
+    xmlns="http://www.w3.org/2000/svg">
+    <!-- Goat shape -->
+    <ellipse cx="65" cy="52" rx="35" ry="18" fill="#1a4a2e"/>
+    <path d="M95,52 Q108,48 112,38 Q116,30 108,28 Q102,26 100,34 Q98,42 95,46" fill="#1a4a2e"/>
+    <!-- head -->
+    <ellipse cx="32" cy="40" rx="14" ry="12" fill="#1a4a2e"/>
+    <!-- horns -->
+    <path d="M28,30 Q22,18 26,12" stroke="#1a4a2e" stroke-width="3" fill="none"/>
+    <path d="M36,29 Q42,18 38,12" stroke="#1a4a2e" stroke-width="3" fill="none"/>
+    <!-- legs -->
+    <line x1="45" y1="68" x2="43" y2="80" stroke="#1a4a2e" stroke-width="5"/>
+    <line x1="58" y1="70" x2="57" y2="80" stroke="#1a4a2e" stroke-width="5"/>
+    <line x1="72" y1="70" x2="73" y2="80" stroke="#1a4a2e" stroke-width="5"/>
+    <line x1="85" y1="68" x2="87" y2="80" stroke="#1a4a2e" stroke-width="5"/>
+    <!-- ear -->
+    <ellipse cx="24" cy="42" rx="6" ry="4" fill="#1a4a2e" transform="rotate(-20,24,42)"/>
+    <!-- eye -->
+    <circle cx="28" cy="39" r="2" fill="#f0d080"/>
+    <!-- beard -->
+    <path d="M30,50 Q28,58 26,62" stroke="#1a4a2e" stroke-width="2.5" fill="none"/>
+  </svg>
+
+  <svg class="animal-silhouette" viewBox="0 0 160 100" style="width:clamp(80px,12vw,150px);right:12vw;animation-duration:30s;animation-delay:-12s;"
+    xmlns="http://www.w3.org/2000/svg">
+    <!-- Cow shape -->
+    <ellipse cx="90" cy="62" rx="52" ry="25" fill="#1a3a25"/>
+    <!-- neck -->
+    <path d="M42,60 Q32,50 36,38 Q40,26 52,28 Q62,30 60,45 Q58,58 42,60Z" fill="#1a3a25"/>
+    <!-- head -->
+    <ellipse cx="28" cy="35" rx="18" ry="15" fill="#1a3a25"/>
+    <!-- horns -->
+    <path d="M20,24 Q12,10 16,4" stroke="#1a3a25" stroke-width="4" fill="none"/>
+    <path d="M36,22 Q44,8 40,2" stroke="#1a3a25" stroke-width="4" fill="none"/>
+    <!-- snout -->
+    <ellipse cx="16" cy="40" rx="8" ry="5" fill="#143020"/>
+    <!-- ears -->
+    <ellipse cx="44" cy="24" rx="8" ry="5" fill="#1a3a25" transform="rotate(-30,44,24)"/>
+    <!-- eye -->
+    <circle cx="24" cy="32" r="3" fill="#f0d080"/>
+    <!-- legs -->
+    <line x1="58" y1="85" x2="56" y2="100" stroke="#1a3a25" stroke-width="7"/>
+    <line x1="76" y1="88" x2="75" y2="100" stroke="#1a3a25" stroke-width="7"/>
+    <line x1="100" y1="88" x2="102" y2="100" stroke="#1a3a25" stroke-width="7"/>
+    <line x1="118" y1="85" x2="120" y2="100" stroke="#1a3a25" stroke-width="7"/>
+    <!-- tail -->
+    <path d="M140,55 Q155,45 152,38" stroke="#1a3a25" stroke-width="3" fill="none"/>
+    <ellipse cx="152" cy="36" rx="4" ry="6" fill="#1a3a25"/>
+    <!-- dewlap -->
+    <path d="M28,50 Q22,64 20,70" stroke="#1a3a25" stroke-width="4" fill="none"/>
+  </svg>
+
+  <!-- LANTERNS -->
+  <div id="lanterns-wrap"></div>
+
+  <!-- PARTICLES -->
+  <canvas id="particlesCanvas"></canvas>
+
+  <!-- FIREWORKS -->
+  <canvas id="fireworksCanvas"></canvas>
+
+  <!-- LANDING SCREEN -->
+  <div id="landing">
+    <div class="landing-bismillah">بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ</div>
+    <div class="landing-arabic">Just Click on</div>
+    <div class="landing-arabic" style="font-size:clamp(16px,3.5vw,42px);color:rgba(232,210,160,0.7);">
+      IT
+    </div>
+    <div class="landing-divider"></div>
+    <div class="landing-sub">Receiver: UMME HABIBA DIYA</div>
+
+    <button id="lookBtn" onclick="beginExperience()">
+      <div class="btn-bg"></div>
+      <div class="btn-corner tl"></div>
+      <div class="btn-corner tr"></div>
+      <div class="btn-corner bl"></div>
+      <div class="btn-corner br"></div>
+      <span class="btn-text">Look Inside <span class="btn-icon">›</span></span>
+    </button>
+
+    <div id="scroll-hint">
+      <div class="scroll-dot"></div>
+      <div class="scroll-text">tap to begin</div>
+    </div>
+  </div>
+
+  <!-- GREETING SCREEN -->
+  <div id="greeting">
+    <div class="greet-halo"></div>
+
+    <div class="greet-ornament-top">✦ ✧ ✦</div>
+
+    <div class="greet-panel">
+      <!-- Corner ornaments -->
+      <div class="panel-corner pc-tl">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 38 L2 2 L38 2" stroke="#c9a84c" stroke-width="1.5" opacity="0.7"/>
+          <circle cx="2" cy="2" r="3" fill="#c9a84c" opacity="0.8"/>
+          <path d="M8 2 Q2 8 2 8" stroke="#c9a84c" stroke-width="0.8" opacity="0.4"/>
+        </svg>
+      </div>
+      <div class="panel-corner pc-tr">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 38 L2 2 L38 2" stroke="#c9a84c" stroke-width="1.5" opacity="0.7"/>
+          <circle cx="2" cy="2" r="3" fill="#c9a84c" opacity="0.8"/>
+        </svg>
+      </div>
+      <div class="panel-corner pc-bl">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 38 L2 2 L38 2" stroke="#c9a84c" stroke-width="1.5" opacity="0.7"/>
+          <circle cx="2" cy="2" r="3" fill="#c9a84c" opacity="0.8"/>
+        </svg>
+      </div>
+      <div class="panel-corner pc-br">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 38 L2 2 L38 2" stroke="#c9a84c" stroke-width="1.5" opacity="0.7"/>
+          <circle cx="2" cy="2" r="3" fill="#c9a84c" opacity="0.8"/>
+        </svg>
+      </div>
+
+      <div class="greet-label">✦ &nbsp; ঈদ মোবারক &nbsp; ✦</div>
+      <div class="greet-main-bn">ঈদুল আযহা মোবারক</div>
+      <div class="greet-main-ar">عيد الأضحى مبارك</div>
+      <div class="greet-divider"><span>✦</span></div>
+      <div class="greet-sub">
+        "Wishing you peace, happiness, and blessings<br>
+        on this sacred and beautiful occasion."
+      </div>
+      <div class="greet-bn-sub">
+        আসলে জীবনে অনেক জনই আসছে গেছে, তবে কয়েকজনকে কখনো ভুলতে পারিনি, জানিনা জীবনে কখনো ৩ ঘন্টা ধরে বসে কোড লিখে কাওকে wish করেছি কি না। তবে হ্যাঁ, কোনো অজানা কারণে ইচ্ছা করে। সামনে ঈদে আপনার বাসায় আত্মীয়ের ভাগ থেকে মাংস দেওয়ার ব্যবস্থা করে দিবেন?
+      </div>
+
+      <div class="greet-seal">
+        <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(201,168,76,0.4)" stroke-width="1"/>
+          <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(201,168,76,0.25)" stroke-width="0.5"
+            stroke-dasharray="4 4"/>
+          <!-- Star of 8 points -->
+          <g transform="translate(40,40)">
+            <polygon points="0,-18 4,-4 18,0 4,4 0,18 -4,4 -18,0 -4,-4"
+              fill="rgba(201,168,76,0.15)" stroke="rgba(201,168,76,0.5)" stroke-width="0.5"/>
+          </g>
+          <text x="40" y="46" text-anchor="middle" font-size="14"
+            fill="rgba(201,168,76,0.8)" font-family="serif">☽</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="greet-ornament-bot">✦ ✧ ✦</div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   EIDUL ADHA — PREMIUM CINEMATIC GREETING
+   All vanilla JS — no external deps
+═══════════════════════════════════════════════════════ */
+
+/* ── STATE ── */
+let isExperienced = false;
+let mouse = {x: window.innerWidth/2, y: window.innerHeight/2};
+let targetMouse = {x: window.innerWidth/2, y: window.innerHeight/2};
+let raf;
+let audio;
+
+const W = () => window.innerWidth;
+const H = () => window.innerHeight;
+
+/* ── LOADER ── */
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hidden');
+    setTimeout(() => {
+      document.getElementById('scroll-hint').classList.add('show');
+    }, 2500);
+    initAll();
+  }, 800);
+});
+
+/* ── CURSOR ── */
+const cur = document.getElementById('cursor');
+const curRing = document.getElementById('cursor-ring');
+let cx=W()/2, cy=H()/2, rx=W()/2, ry=H()/2;
+
+document.addEventListener('mousemove', e => {
+  mouse.x = e.clientX; mouse.y = e.clientY;
+});
+document.addEventListener('touchmove', e => {
+  const t = e.touches[0];
+  mouse.x = t.clientX; mouse.y = t.clientY;
+}, {passive:true});
+
+function animateCursor(){
+  cx += (mouse.x - cx) * 0.25;
+  cy += (mouse.y - cy) * 0.25;
+  rx += (mouse.x - rx) * 0.1;
+  ry += (mouse.y - ry) * 0.1;
+  cur.style.left = cx+'px'; cur.style.top = cy+'px';
+  curRing.style.left = rx+'px'; curRing.style.top = ry+'px';
+}
+
+/* ── STARS ── */
+const starsC = document.getElementById('starsCanvas');
+const sCtx = starsC.getContext('2d');
+let stars = [];
+
+function resizeStars(){
+  starsC.width = W(); starsC.height = H();
+  generateStars();
+}
+
+function generateStars(){
+  stars = [];
+  const count = Math.floor((W()*H())/3000);
+  for(let i=0;i<count;i++){
+    const size = Math.random();
+    stars.push({
+      x: Math.random()*W(),
+      y: Math.random()*H()*0.75,
+      r: size < 0.7 ? 0.5 : size < 0.9 ? 1 : 1.8,
+      brightness: 0.3 + Math.random()*0.7,
+      twinkleSpeed: 0.5 + Math.random()*2,
+      twinkleOffset: Math.random()*Math.PI*2,
+      color: Math.random() > 0.9 ? '#ffe4a0' : Math.random() > 0.8 ? '#a0c8ff' : '#ffffff',
+      shootingChance: Math.random() > 0.998
+    });
+  }
+  // Shooting star data
+  stars._shooters = [];
+}
+
+function drawStars(t){
+  sCtx.clearRect(0,0,W(),H());
+  const now = t/1000;
+  stars.forEach(s => {
+    const tw = Math.sin(now*s.twinkleSpeed + s.twinkleOffset)*0.4+0.6;
+    sCtx.globalAlpha = s.brightness * tw;
+    sCtx.fillStyle = s.color;
+    sCtx.beginPath();
+    sCtx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    sCtx.fill();
+  });
+
+  // Shooting stars
+  if(Math.random() < 0.003 && (stars._shooters||[]).length < 3){
+    if(!stars._shooters) stars._shooters = [];
+    stars._shooters.push({
+      x: Math.random()*W()*0.7,
+      y: Math.random()*H()*0.3,
+      vx: 6+Math.random()*8,
+      vy: 3+Math.random()*5,
+      life: 1, tail: []
+    });
+  }
+  if(stars._shooters){
+    stars._shooters = stars._shooters.filter(s=>{
+      s.tail.push({x:s.x,y:s.y});
+      if(s.tail.length>12) s.tail.shift();
+      s.x+=s.vx; s.y+=s.vy; s.life-=0.04;
+      if(s.life<=0||s.x>W()||s.y>H()) return false;
+      for(let i=0;i<s.tail.length;i++){
+        const a = (i/s.tail.length)*s.life*0.8;
+        sCtx.globalAlpha = a;
+        sCtx.strokeStyle = '#ffe8a0';
+        sCtx.lineWidth = 1.5*(i/s.tail.length);
+        sCtx.beginPath();
+        if(i>0){ sCtx.moveTo(s.tail[i-1].x,s.tail[i-1].y); sCtx.lineTo(s.tail[i].x,s.tail[i].y); sCtx.stroke(); }
+      }
+      return true;
+    });
+  }
+  sCtx.globalAlpha = 1;
+}
+
+/* ── PARTICLES ── */
+const pC = document.getElementById('particlesCanvas');
+const pCtx = pC.getContext('2d');
+let particles = [];
+
+function resizeParticles(){
+  pC.width = W(); pC.height = H();
+}
+
+class Particle {
+  constructor(x, y, burst){
+    this.x = x || Math.random()*W();
+    this.y = y || H() + 20;
+    this.burst = burst || false;
+    if(burst){
+      const angle = Math.random()*Math.PI*2;
+      const speed = 1+Math.random()*5;
+      this.vx = Math.cos(angle)*speed;
+      this.vy = Math.sin(angle)*speed;
+      this.life = 1;
+      this.decay = 0.015+Math.random()*0.025;
+      this.r = 1+Math.random()*3;
+    } else {
+      this.vx = (Math.random()-0.5)*0.6;
+      this.vy = -(0.2+Math.random()*0.8);
+      this.life = 0.6+Math.random()*0.4;
+      this.decay = 0.003+Math.random()*0.006;
+      this.r = 0.5+Math.random()*2.5;
+    }
+    const colors = ['#ffd700','#f0c840','#c9a84c','#ffe580','#ffffff','#f5e0a0'];
+    this.color = colors[Math.floor(Math.random()*colors.length)];
+    this.gravity = burst ? 0.05 : 0.01;
+  }
+  update(){
+    this.x += this.vx;
+    this.y += this.vy;
+    this.vy += this.gravity;
+    if(!this.burst) this.vx += Math.sin(Date.now()*0.001+this.y)*0.02;
+    this.life -= this.decay;
+  }
+  draw(ctx){
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, this.life * (this.burst ? 1 : 0.8));
+    ctx.fillStyle = this.color;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = this.r*3;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function spawnAmbientParticles(){
+  if(particles.length < 120){
+    for(let i=0;i<2;i++) particles.push(new Particle());
+  }
+}
+
+function updateParticles(){
+  particles = particles.filter(p=>p.life>0);
+  particles.forEach(p=>{ p.update(); p.draw(pCtx); });
+}
+
+/* ── FIREWORKS ── */
+const fC = document.getElementById('fireworksCanvas');
+const fCtx = fC.getContext('2d');
+let fireworks = [];
+let fwActive = false;
+
+function resizeFireworks(){ fC.width=W(); fC.height=H(); }
+
+class Firework {
+  constructor(){
+    this.x = W()*0.2 + Math.random()*W()*0.6;
+    this.y = H()*0.6;
+    this.tx = W()*0.1 + Math.random()*W()*0.8;
+    this.ty = H()*0.1 + Math.random()*H()*0.35;
+    const dx = this.tx - this.x;
+    const dy = this.ty - this.y;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    this.speed = 8+Math.random()*6;
+    this.vx = (dx/dist)*this.speed;
+    this.vy = (dy/dist)*this.speed;
+    this.exploded = false;
+    this.trail = [];
+    this.particles = [];
+    const hues = [45,50,55,200,120,0];
+    this.hue = hues[Math.floor(Math.random()*hues.length)];
+  }
+  update(){
+    if(!this.exploded){
+      this.trail.push({x:this.x,y:this.y});
+      if(this.trail.length>8) this.trail.shift();
+      this.x+=this.vx; this.y+=this.vy;
+      this.vy+=0.15;
+      if(this.vy>=0) this.explode();
+    } else {
+      this.particles.forEach(p=>p.update());
+      this.particles = this.particles.filter(p=>p.life>0);
+    }
+  }
+  explode(){
+    this.exploded = true;
+    const count = 80+Math.floor(Math.random()*60);
+    for(let i=0;i<count;i++){
+      const p = new Particle(this.x, this.y, true);
+      p.color = `hsl(${this.hue+Math.random()*30-15},100%,${70+Math.random()*20}%)`;
+      p.r = 1.5+Math.random()*2;
+      this.particles.push(p);
+    }
+    // Camera shake
+    if(!isExperienced) return;
+    document.getElementById('app').style.animation = 'cameraShake 0.4s ease';
+    setTimeout(()=>{ document.getElementById('app').style.animation=''; }, 400);
+  }
+  draw(ctx){
+    if(!this.exploded){
+      ctx.save();
+      for(let i=0;i<this.trail.length;i++){
+        ctx.globalAlpha = (i/this.trail.length)*0.6;
+        ctx.fillStyle = `hsl(${this.hue},100%,80%)`;
+        ctx.beginPath();
+        ctx.arc(this.trail[i].x, this.trail[i].y, 2, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.restore();
+    } else {
+      this.particles.forEach(p=>p.draw(ctx));
+    }
+  }
+  isDead(){ return this.exploded && this.particles.length===0; }
+}
+
+function launchFireworks(){
+  fwActive = true;
+  document.getElementById('fireworksCanvas').style.opacity = '1';
+  let count = 0;
+  const launch = () => {
+    if(!fwActive) return;
+    fireworks.push(new Firework());
+    count++;
+    if(count < 18){
+      setTimeout(launch, 300+Math.random()*600);
+    } else {
+      setTimeout(()=>{
+        document.getElementById('fireworksCanvas').style.opacity='0';
+        fwActive = false;
+        fireworks = [];
+      }, 3000);
+    }
+  };
+  launch();
+}
+
+function updateFireworks(){
+  if(!fwActive && fireworks.length===0) return;
+  fCtx.clearRect(0,0,W(),H());
+  fireworks.forEach(f=>{ f.update(); f.draw(fCtx); });
+  fireworks = fireworks.filter(f=>!f.isDead());
+}
+
+/* ── LANTERNS ── */
+function createLanterns(){
+  const wrap = document.getElementById('lanterns-wrap');
+  wrap.innerHTML = '';
+  const lanternData = [
+    {left:'5%',top:'15%',color1:'#cc4400',color2:'#ff8c00',strH:80,swing:4,delay:0},
+    {left:'18%',top:'8%',color1:'#8b0000',color2:'#dc143c',strH:60,swing:5.5,delay:1.2},
+    {left:'78%',top:'10%',color1:'#006400',color2:'#228b22',strH:70,swing:4.8,delay:0.7},
+    {left:'88%',top:'18%',color1:'#4a0080',color2:'#9b30ff',strH:55,swing:3.5,delay:2},
+    {left:'32%',top:'5%',color1:'#8b6914',color2:'#ffd700',strH:45,swing:6,delay:0.4},
+    {left:'65%',top:'7%',color1:'#800000',color2:'#ff4500',strH:65,swing:5,delay:1.8},
+  ];
+  lanternData.forEach(d=>{
+    const lw = document.createElement('div');
+    lw.className = 'lantern-wrap';
+    lw.style.cssText = `left:${d.left};top:${d.top};animation-duration:${d.swing}s;animation-delay:-${d.delay}s;`;
+    lw.innerHTML = `
+      <div class="lantern-string" style="height:${d.strH}px;"></div>
+      <div class="lantern-body" style="
+        background:radial-gradient(ellipse at 35% 35%,${d.color2},${d.color1});
+        width:clamp(18px,3vw,38px);height:clamp(28px,4.5vw,52px);
+        box-shadow:0 0 20px 10px ${d.color1}66,inset 0 0 15px ${d.color2}66;">
+        <div class="lantern-cap" style="background:${d.color1};"></div>
+        <div class="lantern-bottom" style="background:${d.color1};"></div>
+      </div>
+    `;
+    wrap.appendChild(lw);
+  });
+}
+
+/* ── CLOUDS ── */
+function createClouds(){
+  const wrap = document.getElementById('cloud-layer');
+  const cloudData = [
+    {top:'12%',size:300,opacity:0.04,dur:120},
+    {top:'22%',size:200,opacity:0.03,dur:90},
+    {top:'8%',size:250,opacity:0.03,dur:150},
+  ];
+  cloudData.forEach(d=>{
+    const c = document.createElement('div');
+    c.className='cloud';
+    c.style.cssText=`top:${d.top};width:${d.size}px;height:${d.size*0.4}px;
+      opacity:${d.opacity};animation-duration:${d.dur}s;
+      animation-delay:-${Math.random()*d.dur}s;`;
+    wrap.appendChild(c);
+  });
+}
+
+/* ── LIGHT RAYS ── */
+function createRays(){
+  const wrap = document.getElementById('rays-wrap');
+  wrap.innerHTML='';
+  const rayCount = 10;
+  for(let i=0;i<rayCount;i++){
+    const r = document.createElement('div');
+    r.className='light-ray';
+    const angle = -30 + (i/(rayCount-1))*60;
+    const len = H()*1.5;
+    r.style.cssText=`
+      height:${len}px;
+      transform:rotate(${angle}deg) translateX(-50%);
+      opacity:0;
+      background:linear-gradient(to bottom,
+        rgba(255,215,0,${0.04+Math.random()*0.08}), transparent);
+      width:${2+Math.random()*4}px;
+      left:${30+i*(40/(rayCount-1))}%;
+      transform-origin:top center;
+    `;
+    wrap.appendChild(r);
+  }
+}
+
+function showRays(){
+  document.querySelectorAll('.light-ray').forEach((r,i)=>{
+    setTimeout(()=>r.classList.add('show'), i*80);
+  });
+}
+
+/* ── PARALLAX ── */
+function applyParallax(mx, my){
+  const cx = mx/W()-0.5;
+  const cy = my/H()-0.5;
+  const moonLayer = document.getElementById('moon-layer');
+  moonLayer.style.transform = `translate(${cx*-25}px, ${cy*-15}px)`;
+  document.getElementById('mosque-wrap').style.transform =
+    `translateX(-50%) translate(${cx*-10}px, ${cy*-6}px)`;
+  document.getElementById('starsCanvas').style.transform =
+    `translate(${cx*-30}px, ${cy*-20}px)`;
+}
+
+/* ── MAIN LOOP ── */
+function mainLoop(t){
+  pCtx.clearRect(0,0,W(),H());
+  animateCursor();
+  drawStars(t);
+  spawnAmbientParticles();
+  updateParticles();
+  updateFireworks();
+  // Smooth mouse for parallax
+  targetMouse.x += (mouse.x - targetMouse.x)*0.05;
+  targetMouse.y += (mouse.y - targetMouse.y)*0.05;
+  applyParallax(targetMouse.x, targetMouse.y);
+  raf = requestAnimationFrame(mainLoop);
+}
+
+/* ── AUDIO ── */
+function initAudio(){
+  try {
+    audio = new Audio('m.wav');
+    audio.volume = 0;
+    audio.loop = true;
+    audio.play().then(()=>{
+      // Fade in
+      let v = 0;
+      const fade = setInterval(()=>{
+        v = Math.min(0.65, v+0.02);
+        audio.volume = v;
+        if(v >= 0.65) clearInterval(fade);
+      }, 60);
+    }).catch(()=>{
+      // Audio unavailable — graceful fail
+    });
+  } catch(e){}
+}
+
+/* ── BEGIN EXPERIENCE ── */
+window.beginExperience = function(){
+  if(isExperienced) return;
+  isExperienced = true;
+
+  // Start audio
+  initAudio();
+
+  // Hide button hint
+  document.getElementById('scroll-hint').classList.remove('show');
+
+  // Flash veil
+  const veil = document.getElementById('veil');
+  veil.style.transition = 'opacity 0.4s ease';
+  veil.classList.add('flash');
+
+  setTimeout(()=>{
+    veil.style.transition = 'opacity 1.5s ease';
+    veil.classList.remove('flash');
+  }, 400);
+
+  // Fade out landing
+  const landing = document.getElementById('landing');
+  landing.style.opacity = '0';
+  landing.style.transform = 'scale(1.15) translateZ(60px)';
+  landing.style.transition = 'opacity 1.8s ease, transform 2.5s cubic-bezier(0.16,1,0.3,1)';
+
+  setTimeout(()=>{ landing.style.pointerEvents='none'; }, 500);
+
+  // Show rays
+  setTimeout(showRays, 600);
+
+  // Bloom on
+  setTimeout(()=>{
+    document.getElementById('bloom').classList.add('on');
+  }, 800);
+
+  // Reveal greeting
+  setTimeout(()=>{
+    document.getElementById('greeting').classList.add('visible');
+  }, 1400);
+
+  // Launch fireworks
+  setTimeout(launchFireworks, 2200);
+
+  // Extra burst particles
+  setTimeout(()=>{
+    for(let i=0;i<60;i++){
+      const p = new Particle(
+        W()*0.3 + Math.random()*W()*0.4,
+        H()*0.4 + Math.random()*H()*0.3,
+        true
+      );
+      p.decay = 0.008+Math.random()*0.015;
+      particles.push(p);
+    }
+  }, 2400);
+
+  // More particles over time
+  setTimeout(()=>{
+    setInterval(()=>{
+      if(particles.length < 200){
+        for(let i=0;i<3;i++) particles.push(new Particle());
+      }
+    }, 50);
+  }, 2000);
+};
+
+/* ── RESIZE ── */
+function onResize(){
+  resizeStars();
+  resizeParticles();
+  resizeFireworks();
+}
+
+/* ── INIT ── */
+function initAll(){
+  resizeStars();
+  resizeParticles();
+  resizeFireworks();
+  createLanterns();
+  createClouds();
+  createRays();
+  mainLoop(0);
+  window.addEventListener('resize', onResize);
+  // Mobile touch support for cursor
+  document.addEventListener('touchstart', e=>{
+    const t=e.touches[0];
+    mouse.x=t.clientX; mouse.y=t.clientY;
+  },{passive:true});
+}
+
+/* ── HOVER cursor expand ── */
+document.getElementById('lookBtn').addEventListener('mouseenter',()=>{
+  curRing.style.width='70px'; curRing.style.height='70px';
+  cur.style.transform='translate(-50%,-50%) scale(1.5)';
+});
+document.getElementById('lookBtn').addEventListener('mouseleave',()=>{
+  curRing.style.width='44px'; curRing.style.height='44px';
+  cur.style.transform='translate(-50%,-50%) scale(1)';
+});
+
+/* ── PREVENT DEFAULT CONTEXT MENU for polish ── */
+document.addEventListener('contextmenu', e=>e.preventDefault());
+
+</script>
+</body>
+</html>
